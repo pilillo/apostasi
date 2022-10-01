@@ -1,2 +1,2 @@
 # apostasi
-so far yet so close
+Basic implementation of locality-sentitive hashing for approximate k-NN
