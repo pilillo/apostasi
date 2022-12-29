@@ -1,2 +1,2 @@
 # apostasi
-Basic implementation of locality-sentitive hashing for approximate k-NN
+Basic implementation of approximate k-NN algorithms
