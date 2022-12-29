@@ -15,6 +15,7 @@ import (
 type Index interface {
 	FindSimilarById(id int64, k int, bucketScale float64) (neighbours []int64, err error)
 	FindSimilarByVector(v []float64, k int, bucketScale float64) (neighbours []int64, err error)
+	SortCandidates(idToDistance map[int64]float64) ([]int64, error)
 }
 
 type index struct {
@@ -82,24 +83,41 @@ func (i *index) FindSimilarByVector(v []float64, k int, bucketScale float64) (ne
 
 	// 3. calculate cross-similarity between query vector v and all candidates
 	idToDist := make(map[int64]float64, len(annMap))
-	candidates := make([]int64, 0, len(annMap))
+	//candidates := make([]int64, 0, len(annMap))
 	for id := range annMap {
 		iid := int64(id)
-		candidates = append(candidates, iid)
+		//candidates = append(candidates, iid)
 		if idToDist[iid], err = common.CosineDistance(i.items[id].vector, v); err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
-	// 4. sort candidates by descending distance
-	sort.Slice(candidates, func(i, j int) bool {
-		return idToDist[candidates[i]] < idToDist[candidates[j]]
-	})
+	// 3. sort candidates by distance asc
+	candidates, err := i.SortCandidates(idToDist)
+	if err != nil {
+		return nil, err
+	}
 
-	// 5. return top k
+	// 4. return top k
 	if len(candidates) > k {
 		candidates = candidates[:k]
 	}
+	return candidates, nil
+}
+
+func (i *index) SortCandidates(idToDistance map[int64]float64) ([]int64, error) {
+	candidates := make([]int64, 0, len(idToDistance))
+
+	for id := range idToDistance {
+		iid := int64(id)
+		candidates = append(candidates, iid)
+	}
+
+	// sort candidates by descending similarity / ascending distance
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return idToDistance[candidates[i]] < idToDistance[candidates[j]]
+	})
+
 	return candidates, nil
 }
 
